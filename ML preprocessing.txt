@@ -1,0 +1,88 @@
+import pandas as pd
+df = pd.read_csv("EmployeeAttrition.csv")
+df.shape
+
+from sklearn.model_selection import train_test_split
+
+X = df.drop('Attrition',axis=1) # all column which are input features --> X
+Y = df.loc[:,'Attrition'] # output column  --> Y
+
+X.shape, Y.shape
+
+--Random_state
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3,
+                                                    random_state=7,
+                                                    stratify=Y)#shuffle=True
+
+X_train.shape, X_test.shape, y_train.shape, y_test.shape
+
+
+--Train the Preprocessing model
+
+X_train.isna().sum(axis=0)
+X_train.columns[X_train.nunique()==1]
+
+X_train.drop(columns=X_train.columns[X_train.nunique()==1], inplace=True)
+
+X_train.shape
+valid_columns = X_train.columns
+X_test=X_test.loc[:,valid_columns]
+X_test.shape
+
+--Remove repeated rows
+X_train.drop_duplicates(inplace=True)
+X_train.shape
+X_train_ohe = pd.get_dummies(X_train)
+X_train_ohe.shape
+X_test_ohe = pd.get_dummies(X_test)
+X_test_ohe.shape
+
+--Standard Scaler on Training data and test data
+cont_columns = X_train_ohe.columns[X_train_ohe.nunique() > 15]
+
+cont_column_mean = X_train_ohe.loc[:,cont_columns].mean()
+cont_column_std_dev = X_train_ohe.loc[:,cont_columns].std()
+X_train_ohe.loc[:,cont_columns] = (X_train_ohe.loc[:,cont_columns] -cont_column_mean) / cont_column_std_dev
+X_train_ohe.loc[:,cont_columns].mean()
+
+--Format the target Y
+Y.loc[Y == 'Existing Customer',] = 0
+Y.loc[Y == 'Attrited Customer',] = 1
+
+--Feature Selection
+from sklearn.decomposition import PCA
+from sklearn.tree import DecisionTreeClassifier
+pca = PCA(n_components = 0.95, random_state=7)
+pca.fit(X_train)
+pca.n_components_
+X_train_pca = pca.transform(X_train)
+X_test_pca = pca.transform(X_test)
+dt = DecisionTreeClassifier(criterion='gini',random_state=7,class_weight='balanced')
+dt.fit(X_train,Y_train)
+dt.feature_importances_
+
+--Recursive Feature Selection
+from sklearn.feature_selection import RFE
+rfe = RFE(DecisionTreeClassifier(criterion='gini',random_state=7,class_weight='balanced'),
+          n_features_to_select =0.5)
+rfe.fit(X_train,Y_train)
+rfe.ranking_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
